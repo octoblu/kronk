@@ -1,0 +1,27 @@
+#!/bin/bash
+
+main(){
+  local service_prefix="$1"
+  local service_suffix="$2"
+  local backend_name="${3:-$service_prefix}"
+
+  local register_docker_name="${service_prefix}-register-${service_suffix}"
+  local service_docker_name="${service_prefix}-${service_suffix}"
+
+  local register_traefik_docker_url="$(etcdctl get /octoblu/register-traefik/docker_url)"
+  local port="$(cat /tmp/${service_docker_name}-port)"
+  local etcd_uri="$(etcdctl get /octoblu/etcd-major/endpoint)"
+  local cluster_name="$(etcdctl get /cluster/name)"
+
+  local server_key="/traefik/backends/${backend_name}/servers/${service_prefix}-${cluster_name}-${service_suffix}"
+  local uri="http://${COREOS_PRIVATE_IPV4}:${port}"
+
+  docker run --rm \
+    --name "${register_docker_name}" \
+    --env-file "/tmp/${register_docker_name}.env" \
+    "${register_traefik_docker_url}" \
+      --etcd-uri "${etcd_uri}" \
+      --server-key "${server_key}" \
+      --uri "${uri}"
+}
+main $@

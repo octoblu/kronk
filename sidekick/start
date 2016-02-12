@@ -1,0 +1,63 @@
+#!/bin/bash
+
+check_image_downloaded() {
+  local docker_url=$1
+
+  docker inspect \
+    --format='{{.Id}}' \
+    --type=image \
+    "${docker_url}" > /dev/null
+}
+
+download_image() {
+  local docker_url="$1"
+  check_image_downloaded "${docker_url}"
+  local image_downloaded=$?
+
+  if [ "$image_downloaded" != "0" ]; then
+    pull_image "$docker_url"
+  fi
+}
+
+get_docker_url() {
+  local etcd_docker_url_key="$1"
+  etcdctl get "${etcd_docker_url_key}"
+}
+
+pull_image() {
+  local docker_url="$1"
+
+  docker pull "${docker_url}"
+}
+
+hup_docker() {
+  local docker_name="$1"
+
+  docker kill \
+    --signal=HUP \
+    "${docker_name}" > /dev/null
+}
+
+stop_docker() {
+  local timeout="$1"
+  local docker_name="$2"
+
+  docker stop \
+    --time="${timeout}" \
+    "${docker_name}" > /dev/null
+}
+
+
+main(){
+  local timeout="$1"
+  local etcd_docker_url_key="$2"
+  local service_docker_name="$3"
+  local register_docker_name="$4"
+  local docker_url="$(get_docker_url "${etcd_docker_url_key}")"
+
+  download_image "${docker_url}"
+  hup_docker  "${register_docker_name}"
+  stop_docker "${timeout}" "${service_docker_name}"
+  stop_docker "${timeout}" "${register_docker_name}"
+}
+main $@

@@ -1,0 +1,44 @@
+#!/bin/bash
+
+assert_docker_url_etcd_key() {
+  local docker_url_etcd_key="$1"
+  etcdctl get "${docker_url_etcd_key}" 4&> /dev/null
+  if [ "$?" != "0" ]; then
+    echo "etcd did not contain: ${docker_url_etcd_key}"
+    exit 1
+  fi
+}
+
+stop_docker() {
+  /usr/bin/docker rm \
+    --force \
+    $@ &> /dev/null
+}
+
+write_env_file() {
+  local env_docker_name="$1"
+  local docker_name="$2"
+  local etcd_key="$3"
+  /usr/bin/docker run --rm \
+    --name "${env_docker_name}" \
+    --env ETCDCTL_PEERS=http://$(ifconfig docker0 | grep 'inet ' | awk '{print $2}'):2379 \
+    quay.io/octoblu/etcd-to-env "${etcd_key}" > "/tmp/${docker_name}.env" 2> /dev/null
+}
+
+main(){
+  local service_prefix="$1"
+  local service_suffix="$2"
+  local env_etcd_key="$3"
+  local docker_url_etcd_key="$4"
+
+  local env_docker_name="${service_prefix}-env-${service_suffix}"
+  local docker_name="${service_prefix}-${service_suffix}"
+  local tattle_docker_name="${service_prefix}-tattle-${service_suffix}"
+  local tattle_env_docker_name="${service_prefix}-tattle-env-${service_suffix}"
+
+  assert_docker_url_etcd_key "${docker_url_etcd_key}"
+  stop_docker "${env_docker_name}" "${docker_name}" "${tattle_docker_name}" "${tattle_env_docker_name}"
+  write_env_file "${env_docker_name}" "${docker_name}" "${env_etcd_key}"
+  write_env_file "${tattle_env_docker_name}" "${tattle_docker_name}" "/octoblu/tattle/env"
+}
+main $@

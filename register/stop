@@ -1,0 +1,12 @@
+#!/bin/bash
+
+main(){
+  local service_prefix="$1"
+  local service_suffix="$2"
+
+  local register_docker_name="${service_prefix}-register-${service_suffix}"
+
+  docker stop \
+    "${register_docker_name}" &> /dev/null
+}
+main $@
