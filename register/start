@@ -23,5 +23,13 @@ main(){
       --etcd-uri "${etcd_uri}" \
       --server-key "${server_key}" \
       --uri "${uri}"
+
+  local exit_code=$?
+
+  if [ "${exit_code}" != "0" ]; then
+    echo "Exit non 0, waiting 3s before exit"
+    sleep 3
+  fi
+  exit $exit_code
 }
 main $@
