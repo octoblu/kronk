@@ -46,6 +46,7 @@ main(){
   run "${docker_name}" "${docker_url}" "${memory_limit}"
   local exit_code=$?
   if [ "${exit_code}" != "0" ]; then
+    echo "Things went pear-shaped, tattling"
     tattle "${service_name}" "${docker_name}" "${tattle_docker_name}" "${docker_url}" "${etcd_dir}" "${exit_code}"
     exit $exit_code
   fi

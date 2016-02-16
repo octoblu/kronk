@@ -5,8 +5,13 @@ main(){
   local service_suffix="$2"
 
   local service_docker_name="${service_prefix}-${service_suffix}"
+  local register_docker_name="${service_prefix}-register-${service_suffix}"
 
-  docker stop \
-    "${service_docker_name}" &> /dev/null
+  docker kill \
+    --signal=HUP \
+    "${register_docker_name}" > /dev/null
+
+  docker stop "${service_docker_name}" &> /dev/null
+  exit 0
 }
 main $@
