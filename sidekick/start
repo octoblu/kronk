@@ -55,8 +55,9 @@ main(){
   local docker_url="$(get_docker_url "${etcd_docker_url_key}")"
 
   download_image "${docker_url}"
+  sleep $[ ( $RANDOM % 30 )  + 1 ]s # sleep random amount of time to stagger deployment
   hup_docker  "${register_docker_name}"
-  sleep 3 # allow backend to be unregistered
+  sleep 3 # allow backend to be unregistered before stopping service
   stop_docker "${timeout}" "${register_docker_name}"
   stop_docker "${timeout}" "${service_docker_name}"
 }
