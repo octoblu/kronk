@@ -47,7 +47,6 @@ stop_docker() {
     "${docker_name}" > /dev/null
 }
 
-
 main(){
   local timeout="$1"
   local etcd_docker_url_key="$2"
@@ -57,7 +56,8 @@ main(){
 
   download_image "${docker_url}"
   hup_docker  "${register_docker_name}"
-  stop_docker "${timeout}" "${service_docker_name}"
+  sleep 3 # allow backend to be unregistered
   stop_docker "${timeout}" "${register_docker_name}"
+  stop_docker "${timeout}" "${service_docker_name}"
 }
 main $@

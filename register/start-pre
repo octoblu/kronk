@@ -6,6 +6,19 @@ stop_docker() {
     $@ &> /dev/null
 }
 
+wait_for_docker_port() {
+  local docker_name="$1"
+  local docker_exit_code=1
+
+  while [ "${docker_exit_code}" != "0" ]; do
+    echo "Waiting for docker port"
+    docker port "${docker_name}" &> /dev/null
+    docker_exit_code=$?
+    sleep 1
+  done
+  echo "done."
+}
+
 write_env_file() {
   local register_env_docker_name="$1"
   local register_docker_name="$2"
@@ -35,6 +48,7 @@ main(){
   local service_docker_name="${service_prefix}-${service_suffix}"
 
   stop_docker "${register_env_docker_name}" "${register_docker_name}"
+  wait_for_docker_port "${service_docker_name}"
   write_env_file "${register_env_docker_name}" "${register_docker_name}" "${etcd_key}"
   write_port_file "${service_docker_name}"
 }
