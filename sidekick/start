@@ -54,6 +54,8 @@ main(){
   local register_docker_name="$4"
   local docker_url="$(get_docker_url "${etcd_docker_url_key}")"
 
+  echo "Kronk sidekicking."
+
   download_image "${docker_url}"
   sleep $[ ( $RANDOM % 30 )  + 1 ]s # sleep random amount of time to stagger deployment
   hup_docker  "${register_docker_name}"
