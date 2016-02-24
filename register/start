@@ -8,21 +8,21 @@ main(){
   local register_docker_name="${service_prefix}-register-${service_suffix}"
   local service_docker_name="${service_prefix}-${service_suffix}"
 
-  local register_traefik_docker_url="$(etcdctl get /octoblu/register-traefik/docker_url)"
+  local register_vulcan_docker_url="$(etcdctl get /octoblu/register-vulcan/docker_url)"
   local port="$(cat /tmp/${service_docker_name}-port)"
-  local etcd_uri="$(etcdctl get /octoblu/etcd-major/endpoint)"
   local cluster_name="$(etcdctl get /cluster/name)"
 
-  local server_key="/traefik/backends/${backend_name}/servers/${service_prefix}-${cluster_name}-${service_suffix}"
+  local server_id="${service_prefix}-${cluster_name}-${service_suffix}"
   local uri="http://${COREOS_PRIVATE_IPV4}:${port}"
+  local vulcan_uri="$(etcdctl get /octoblu/vulcand-major/endpoint)"
 
   docker run --rm \
     --name "${register_docker_name}" \
-    --env-file "/tmp/${register_docker_name}.env" \
-    "${register_traefik_docker_url}" \
-      --etcd-uri "${etcd_uri}" \
-      --server-key "${server_key}" \
-      --uri "${uri}"
+    "${register_vulcan_docker_url}" \
+      --backend-id="${backend_name}" \
+      --server-id="${server_id}" \
+      --uri="${uri}" \
+      --vulcan-uri="${vulcan_uri}"
 
   local exit_code=$?
 
