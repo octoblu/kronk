@@ -1,0 +1,35 @@
+#!/bin/bash
+
+main(){
+  local service_prefix="$1"
+  local service_suffix="$2"
+  local backend_name="${3:-$service_prefix}"
+
+  local tcp_docker_name="${service_prefix}-tcp-${service_suffix}"
+  local service_docker_name="${service_prefix}-${service_suffix}"
+
+  local tcp_vulcan_docker_url="$(etcdctl get /octoblu/tcp-vulcan/docker_url)"
+  local port="$(cat /tmp/${service_docker_name}-port)"
+  local cluster_name="$(etcdctl get /cluster/name)"
+
+  local server_id="${service_prefix}-${cluster_name}-${service_suffix}"
+  local uri="http://${COREOS_PRIVATE_IPV4}:${port}"
+  local vulcan_uri="$(etcdctl get /octoblu/vulcand-major/endpoint)"
+
+  docker run --rm \
+    --name "${tcp_docker_name}" \
+    "${tcp_vulcan_docker_url}" \
+      --backend-id="${backend_name}" \
+      --server-id="${server_id}" \
+      --uri="${uri}" \
+      --vulcan-uri="${vulcan_uri}"
+
+  local exit_code=$?
+
+  if [ "${exit_code}" != "0" ]; then
+    echo "Exit non 0, waiting 3s before exit"
+    sleep 3
+  fi
+  exit $exit_code
+}
+main $@

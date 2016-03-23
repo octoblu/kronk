@@ -1,0 +1,12 @@
+#!/bin/bash
+
+main(){
+  local service_prefix="$1"
+  local service_suffix="$2"
+
+  local tcp_docker_name="${service_prefix}-tcp-${service_suffix}"
+
+  docker stop \
+    "${tcp_docker_name}" &> /dev/null
+}
+main $@
