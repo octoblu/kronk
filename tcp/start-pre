@@ -32,6 +32,7 @@ write_env_file() {
 write_port_file() {
   local service_docker_name="$1"
   local port="$2"
+  echo docker inspect "${service_docker_name}"
   docker inspect "${service_docker_name}" \
     | docker run --rm --interactive realguess/jq \
       jq --raw-output ".[].NetworkSettings.Ports[\"${port}/tcp\"][].HostPort" \
