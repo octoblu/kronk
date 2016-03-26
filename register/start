@@ -4,13 +4,12 @@ main(){
   local service_prefix="$1"
   local service_suffix="$2"
   local backend_name="${3:-$service_prefix}"
-  local register_vulcan_docker_url="$4"
-  if [ -z "${register_vulcan_docker_url}" ]; then
-    register_vulcan_docker_url="$(etcdctl get /octoblu/register-vulcan/docker_url)"
-  fi
+  local register_vulcan_docker_url_key="${4:-/octoblu/register-vulcan/docker_url}"
 
   local register_docker_name="${service_prefix}-register-${service_suffix}"
   local service_docker_name="${service_prefix}-${service_suffix}"
+
+  local register_vulcan_docker_url="$(etcdctl get "$register_vulcan_docker_url_key")"
 
   local port="$(cat /tmp/${service_docker_name}-port)"
   local cluster_name="$(etcdctl get /cluster/name)"
