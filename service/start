@@ -5,13 +5,14 @@ run(){
   local docker_url="$2"
   local memory_limit="$3"
   local port="$4"
+  local bind_port="$5"
   local env_file="/tmp/${docker_name}.env"
 
   docker run --rm \
     --name "${docker_name}" \
     --env-file "${env_file}" \
     --memory "${memory_limit}" \
-    --publish ":${port}" \
+    --publish "${bind_port}:${port}" \
     "${docker_url}"
 }
 
@@ -40,12 +41,13 @@ main(){
   local docker_url_etcd_key="$4"
   local etcd_dir="$5"
   local port="${6:-80}"
+  local bind_port="$7"
   local docker_url="$(etcdctl get ${docker_url_etcd_key})"
 
   local docker_name="${service_prefix}-${service_suffix}"
   local tattle_docker_name="${service_prefix}-tattle-${service_suffix}"
 
-  run "${docker_name}" "${docker_url}" "${memory_limit}" "${port}"
+  run "${docker_name}" "${docker_url}" "${memory_limit}" "${port}" "${bind_port}"
   local exit_code=$?
   if [ "${exit_code}" != "0" ]; then
     echo "Things went pear-shaped, tattling"
