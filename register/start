@@ -20,6 +20,7 @@ main(){
 
   docker run --rm \
     --name "${register_docker_name}" \
+    --net "host" \
     "${register_vulcan_docker_url}" \
       --backend-id="${backend_name}" \
       --server-id="${server_id}" \
