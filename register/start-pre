@@ -1,5 +1,19 @@
 #!/bin/bash
 
+rm_server() {
+  local backend_id="$1"
+  local server_id="$2"
+  local docker_url="$(etcdctl get /octoblu/vctl/docker_url)"
+  local vulcan_uri="$(etcdctl get /octoblu/vulcand-major/endpoint)"
+
+  /usr/bin/docker run --rm \
+    ${docker_url} \
+      --vulcan "${vulcand_uri}" \
+      server rm \
+        --backend "${backend_id}" \
+        --id      "${server_id}"
+}
+
 stop_docker() {
   /usr/bin/docker rm \
     --force \
@@ -8,12 +22,15 @@ stop_docker() {
 
 wait_for_docker_port() {
   local docker_name="$1"
+  local backend_id="$2"
+  local server_id="$3"
   local docker_exit_code=1
 
   while [ "${docker_exit_code}" != "0" ]; do
     echo "Waiting for docker port"
     docker port "${docker_name}" &> /dev/null
     docker_exit_code=$?
+    rm_server "${backend_id}" "${server_id}"
     sleep 1
   done
   echo "done."
@@ -32,7 +49,7 @@ write_env_file() {
 write_port_file() {
   local service_docker_name="$1"
   local port="$2"
-  
+
   docker inspect "${service_docker_name}" \
     | docker run --rm --interactive realguess/jq \
       jq --raw-output ".[].NetworkSettings.Ports[\"${port}\"][].HostPort" \
@@ -45,13 +62,16 @@ main(){
   local service_suffix="$2"
   local etcd_key="$3"
   local port="${4:-80/tcp}"
+  local backend_id="${BACKEND_NAME:-$service_prefix}"
 
+  local cluster_name="$(etcdctl get /cluster/name)"
   local register_env_docker_name="${service_prefix}-register-env-${service_suffix}"
   local register_docker_name="${service_prefix}-register-${service_suffix}"
   local service_docker_name="${service_prefix}-${service_suffix}"
+  local server_id="${service_prefix}-${cluster_name}-${service_suffix}"
 
   stop_docker "${register_env_docker_name}" "${register_docker_name}"
-  wait_for_docker_port "${service_docker_name}"
+  wait_for_docker_port "${service_docker_name}" "${backend_id}" "${server_id}"
   write_env_file "${register_env_docker_name}" "${register_docker_name}" "${etcd_key}"
   write_port_file "${service_docker_name}" "${port}"
 }
