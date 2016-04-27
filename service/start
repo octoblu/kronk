@@ -8,6 +8,8 @@ run(){
   local bind_port="$5"
   local env_file="/tmp/${docker_name}.env"
 
+  docker rm --force "${docker_name}"
+
   docker run --rm \
     --name "${docker_name}" \
     --env-file "${env_file}" \
