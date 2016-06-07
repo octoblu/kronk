@@ -47,6 +47,8 @@ main(){
   local docker_name="${service_prefix}-${service_suffix}"
   local tattle_docker_name="${service_prefix}-tattle-${service_suffix}"
 
+  echo "About to run: ${docker_url}"
+
   run "${docker_name}" "${docker_url}" "${memory_limit}" "${port}" "${bind_port}"
   local exit_code=$?
   if [ "${exit_code}" != "0" ]; then
