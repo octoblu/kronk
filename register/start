@@ -1,19 +1,18 @@
 #!/bin/bash
 
 main(){
-  local service_prefix="$1"
-  local service_suffix="$2"
-  local backend_name="${3:-$service_prefix}"
-  local register_vulcan_docker_url_key="${4:-/octoblu/register-vulcan/docker_url}"
-
+  local namespace="$1"
+  local service_base_name="$2"
+  local service_suffix="$3"
+  local service_prefix="${namespace}-${service_base_name}"
+  local etcd_dir="${namespace}/${service_base_name}"
+  local backend_id="${service_prefix}"
+  local register_vulcan_docker_url_key="/octoblu/register-vulcan/docker_url"
   local register_docker_name="${service_prefix}-register-${service_suffix}"
   local service_docker_name="${service_prefix}-${service_suffix}"
-
   local register_vulcan_docker_url="$(etcdctl get "$register_vulcan_docker_url_key")"
-
   local port="$(cat /tmp/${service_docker_name}-port)"
   local cluster_name="$(etcdctl get /cluster/name)"
-
   local server_id="${service_prefix}-${cluster_name}-${service_suffix}"
   local uri="http://${COREOS_PRIVATE_IPV4}:${port}"
   local vulcan_uri="$(etcdctl get /octoblu/vulcand-major/endpoint)"
@@ -22,7 +21,7 @@ main(){
     --name "${register_docker_name}" \
     --net "host" \
     "${register_vulcan_docker_url}" \
-      --backend-id="${backend_name}" \
+      --backend-id="${backend_id}" \
       --server-id="${server_id}" \
       --uri="${uri}" \
       --vulcan-uri="${vulcan_uri}"

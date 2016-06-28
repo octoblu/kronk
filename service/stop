@@ -1,8 +1,10 @@
 #!/bin/bash
 
 main(){
-  local service_prefix="$1"
-  local service_suffix="$2"
+  local namespace="$1"
+  local service_base_name="$2"
+  local service_suffix="$3"
+  local service_prefix="${namespace}-${service_base_name}"
 
   local service_docker_name="${service_prefix}-${service_suffix}"
   local register_docker_name="${service_prefix}-register-${service_suffix}"

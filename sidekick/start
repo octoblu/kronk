@@ -1,12 +1,19 @@
 #!/bin/bash
 
 check_image_downloaded() {
-  local docker_url=$1
+  local docker_url="$1"
 
   docker inspect \
     --format='{{.Id}}' \
     --type=image \
     "${docker_url}" > /dev/null
+}
+
+check_version() {
+  local service_docker_name="$1"
+  local docker_url="$2"
+  current_docker_url=$(docker ps | grep "${service_docker_name}" | awk '{ print $2 }')
+  [ "${current_docker_url}" == "${docker_url}" ]
 }
 
 download_image() {
@@ -48,19 +55,32 @@ stop_docker() {
 }
 
 main(){
-  local timeout="$1"
-  local etcd_docker_url_key="$2"
-  local service_docker_name="$3"
-  local register_docker_name="$4"
-  local docker_url="$(get_docker_url "${etcd_docker_url_key}")"
+  local namespace="$1"
+  local service_base_name="$2"
+  local service_suffix="$3"
+  local service_prefix="${namespace}-${service_base_name}"
+  local etcd_dir="${namespace}/${service_base_name}"
+  local docker_url_etcd_key="${etcd_dir}/docker_url"
+  local register_docker_name="${service_prefix}-register-${service_suffix}"
+  local service_docker_name="${service_prefix}-${service_suffix}"
 
-  echo "Kronk sidekicking."
+  while true; do
+    sleep $[ ( $RANDOM % 60 )  + 45 ]s # sleep random amount of time to stagger version check
 
-  download_image "${docker_url}"
-  sleep $[ ( $RANDOM % 120 )  + 1 ]s # sleep random amount of time to stagger deployment
-  hup_docker  "${register_docker_name}"
-  sleep 3 # allow backend to be unregistered before stopping service
-  stop_docker "${timeout}" "${register_docker_name}"
-  stop_docker "${timeout}" "${service_docker_name}"
+    local docker_url="$(get_docker_url "${docker_url_etcd_key}")"
+    check_version "${service_docker_name}" "${docker_url}"
+    local exit_code=$?
+
+    if [ "${exit_code}" != "0" ]; then
+      echo "Kronk sidekicking."
+      download_image "${docker_url}"
+      sleep $[ ( $RANDOM % 60 )  + 1 ]s # sleep random amount of time to stagger deployment
+      hup_docker  "${register_docker_name}"
+      sleep 3 # allow backend to be unregistered before stopping service
+      stop_docker "${timeout}" "${register_docker_name}"
+      stop_docker "${timeout}" "${service_docker_name}"
+      exit 0 # restart to use latest kronk
+    fi
+  done
 }
 main $@

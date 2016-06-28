@@ -58,11 +58,14 @@ write_port_file() {
 }
 
 main(){
-  local service_prefix="$1"
-  local service_suffix="$2"
-  local etcd_key="$3"
-  local port="${4:-80/tcp}"
-  local backend_id="${BACKEND_NAME:-$service_prefix}"
+  local namespace="$1"
+  local service_base_name="$2"
+  local service_suffix="$3"
+  local service_prefix="${namespace}-${service_base_name}"
+  local etcd_dir="${namespace}/${service_base_name}"
+  local env_etcd_key="${etcd_dir}/env"
+  local port="$(etcdctl get ${etcd_dir}/port 2>/dev/null || echo 80/tcp)"
+  local backend_id="${service_prefix}"
 
   local cluster_name="$(etcdctl get /cluster/name)"
   local register_env_docker_name="${service_prefix}-register-env-${service_suffix}"
@@ -72,7 +75,7 @@ main(){
 
   stop_docker "${register_env_docker_name}" "${register_docker_name}"
   wait_for_docker_port "${service_docker_name}" "${backend_id}" "${server_id}"
-  write_env_file "${register_env_docker_name}" "${register_docker_name}" "${etcd_key}"
+  write_env_file "${register_env_docker_name}" "${register_docker_name}" "${env_etcd_key}"
   write_port_file "${service_docker_name}" "${port}"
 }
 main $@

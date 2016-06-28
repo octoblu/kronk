@@ -18,34 +18,37 @@ run(){
 
 tattle(){
   local service_prefix="$1"
-  local docker_name="$2"
-  local tattle_docker_name="$3"
+  local service_suffix="$2"
+  local cluster_name="$3"
   local service_docker_url="$4"
   local etcd_dir="$5"
   local exit_code="$6"
   local tattle_docker_url="$(etcdctl get /octoblu/tattle/docker_url)"
+  local tattle_docker_name="${service_prefix}-tattle-${service_suffix}"
 
   docker run --rm \
     --name "${tattle_docker_name}" \
     --env TATTLE_EXIT_CODE="${exit_code}" \
     --env TATTLE_DOCKER_URL="${service_docker_url}" \
     --env TATTLE_ETCD_DIR="${etcd_dir}" \
+    --env TATTLE_WORKER_NAME="${service_prefix}@${service_suffix}:${cluster_name}" \
     --env-file "/tmp/${tattle_docker_name}.env" \
     "${tattle_docker_url}"
 }
 
 main(){
-  local service_prefix="$1"
-  local service_suffix="$2"
-  local memory_limit="$3"
-  local docker_url_etcd_key="$4"
-  local etcd_dir="$5"
-  local port="${6:-80}"
-  local bind_port="$7"
+  local namespace="$1"
+  local service_base_name="$2"
+  local service_suffix="$3"
+  local service_prefix="${namespace}-${service_base_name}"
+  local etcd_dir="${namespace}/${service_base_name}"
+  local cluster_name="$(etcdctl get /cluster/name)"
+  local docker_url_etcd_key="${etcd_dir}/docker_url"
+  local port="$(etcdctl get ${etcd_dir}/port 2>/dev/null || echo 80/tcp)"
+  local bind_port="$(etcdctl get ${etcd_dir}/bind_port 2>/dev/null)"
+  local memory_limit="$(etcdctl get ${memory_etcd_key} 2>/dev/null || echo 512m)"
   local docker_url="$(etcdctl get ${docker_url_etcd_key})"
-
   local docker_name="${service_prefix}-${service_suffix}"
-  local tattle_docker_name="${service_prefix}-tattle-${service_suffix}"
 
   echo "About to run: ${docker_url}"
 
@@ -53,7 +56,7 @@ main(){
   local exit_code=$?
   if [ "${exit_code}" != "0" ]; then
     echo "Things went pear-shaped, tattling"
-    tattle "${service_name}" "${docker_name}" "${tattle_docker_name}" "${docker_url}" "${etcd_dir}" "${exit_code}"
+    tattle "${service_prefix}" "${service_suffix}" "${cluster_name}" "${docker_url}" "${etcd_dir}" "${exit_code}"
     exit $exit_code
   fi
 }
