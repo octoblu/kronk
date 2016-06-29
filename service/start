@@ -43,6 +43,7 @@ main(){
   local service_prefix="${namespace}-${service_base_name}"
   local etcd_dir="${namespace}/${service_base_name}"
   local cluster_name="$(etcdctl get /cluster/name)"
+  local memory_etcd_key="${etcd_dir}/memory"
   local docker_url_etcd_key="${etcd_dir}/docker_url"
   local port="$(etcdctl get ${etcd_dir}/port 2>/dev/null || echo 80/tcp)"
   local bind_port="$(etcdctl get ${etcd_dir}/bind_port 2>/dev/null)"
