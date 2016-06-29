@@ -9,6 +9,14 @@ assert_docker_url_etcd_key() {
   fi
 }
 
+docker_login() {
+  /usr/bin/docker login \
+    --username $(/usr/bin/etcdctl get /docker/quay.io/username) \
+    --password $(/usr/bin/etcdctl get /docker/quay.io/password) \
+    --email $(/usr/bin/etcdctl get /docker/quay.io/email) \
+    quay.io
+}
+
 stop_docker_with_force() {
   /usr/bin/docker rm \
     --force \
@@ -47,6 +55,7 @@ main(){
   assert_docker_url_etcd_key "${docker_url_etcd_key}"
   stop_docker_with_force "${env_docker_name}" "${docker_name}" "${tattle_docker_name}" "${tattle_env_docker_name}"
   stop_docker "${register_docker_name}"
+  docker_login
   write_env_file "${env_docker_name}" "${docker_name}" "${env_etcd_key}"
   write_env_file "${tattle_env_docker_name}" "${tattle_docker_name}" "/octoblu/tattle/env"
 }

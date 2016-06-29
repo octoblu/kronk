@@ -16,6 +16,13 @@ check_version() {
   [ "${current_docker_url}" == "${docker_url}" ]
 }
 
+check_restart() {
+  local restart_etcd_key="$1"
+  local previous_restart_value="$2"
+  local restart_value="$(get_restart "${restart_etcd_key}")"
+  [ "${restart_value}" == "${previous_restart_value}" ]
+}
+
 download_image() {
   local docker_url="$1"
   check_image_downloaded "${docker_url}"
@@ -29,6 +36,11 @@ download_image() {
 get_docker_url() {
   local etcd_docker_url_key="$1"
   etcdctl get "${etcd_docker_url_key}"
+}
+
+get_restart() {
+  local etcd_restart_key="$1"
+  etcdctl get "${etcd_restart_key}"
 }
 
 pull_image() {
@@ -61,17 +73,34 @@ main(){
   local service_prefix="${namespace}-${service_base_name}"
   local etcd_dir="${namespace}/${service_base_name}"
   local docker_url_etcd_key="${etcd_dir}/docker_url"
+  local restart_etcd_key="${etcd_dir}/restart"
   local register_docker_name="${service_prefix}-register-${service_suffix}"
   local service_docker_name="${service_prefix}-${service_suffix}"
+  local restart_value="$(get_restart "${restart_etcd_key}")"
+  local restart=0
+  local timeout=10
 
   while true; do
     sleep $[ ( $RANDOM % 60 )  + 45 ]s # sleep random amount of time to stagger version check
+
+    check_restart "${restart_etcd_key}" "${restart_value}"
+    local exit_code=$?
+
+    if [ "${exit_code}" != "0" ]; then
+      echo "Restart value changed, restarting."
+      restart=1
+    fi
 
     local docker_url="$(get_docker_url "${docker_url_etcd_key}")"
     check_version "${service_docker_name}" "${docker_url}"
     local exit_code=$?
 
     if [ "${exit_code}" != "0" ]; then
+      echo "Docker URL changed, restarting."
+      restart=1
+    fi
+
+    if [ "${restart}" == "1" ]; then
       echo "Kronk sidekicking."
       download_image "${docker_url}"
       sleep $[ ( $RANDOM % 60 )  + 1 ]s # sleep random amount of time to stagger deployment
