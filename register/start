@@ -12,10 +12,14 @@ main(){
   if [ "${use_cluster_in_backend}" == "true" ]; then
     backend_id="${service_prefix}-${cluster_name}"
   fi
-  local register_vulcan_docker_url_key="/octoblu/register-vulcan/docker_url"
+  local register_docker_url_key="/octoblu/register-vulcan/docker_url"
+  local override_register_docker_url_key="$(etcdctl get ${etcd_dir}/register_docker_url_key 2>/dev/null)"
+  if [ "${override_register_docker_url_key}" != "" ]; then
+    register_docker_url_key="${override_register_docker_url_key}"
+  fi
   local register_docker_name="${service_prefix}-register-${service_suffix}"
   local service_docker_name="${service_prefix}-${service_suffix}"
-  local register_vulcan_docker_url="$(etcdctl get "$register_vulcan_docker_url_key")"
+  local register_docker_url="$(etcdctl get "$register_docker_url_key")"
   local port="$(cat /tmp/${service_docker_name}-port)"
   local server_id="${service_prefix}-${cluster_name}-${service_suffix}"
   local uri="http://${COREOS_PRIVATE_IPV4}:${port}"
@@ -24,7 +28,7 @@ main(){
   docker run --rm \
     --name "${register_docker_name}" \
     --net "host" \
-    "${register_vulcan_docker_url}" \
+    "${register_docker_url}" \
       --backend-id="${backend_id}" \
       --server-id="${server_id}" \
       --uri="${uri}" \
