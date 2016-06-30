@@ -6,13 +6,17 @@ main(){
   local service_suffix="$3"
   local service_prefix="${namespace}-${service_base_name}"
   local etcd_dir="${namespace}/${service_base_name}"
+  local cluster_name="$(etcdctl get /cluster/name)"
   local backend_id="${service_prefix}"
+  local use_cluster_in_backend="$(etcdctl get ${etcd_dir}/use_cluster_in_backend 2>/dev/null)"
+  if [ "${use_cluster_in_backend}" == "true" ]; then
+    backend_id="${service_prefix}-${cluster_name}"
+  fi
   local register_vulcan_docker_url_key="/octoblu/register-vulcan/docker_url"
   local register_docker_name="${service_prefix}-register-${service_suffix}"
   local service_docker_name="${service_prefix}-${service_suffix}"
   local register_vulcan_docker_url="$(etcdctl get "$register_vulcan_docker_url_key")"
   local port="$(cat /tmp/${service_docker_name}-port)"
-  local cluster_name="$(etcdctl get /cluster/name)"
   local server_id="${service_prefix}-${cluster_name}-${service_suffix}"
   local uri="http://${COREOS_PRIVATE_IPV4}:${port}"
   local vulcan_uri="$(etcdctl get /octoblu/vulcand-major/endpoint)"

@@ -65,9 +65,12 @@ main(){
   local etcd_dir="${namespace}/${service_base_name}"
   local env_etcd_key="${etcd_dir}/env"
   local port="$(etcdctl get ${etcd_dir}/port 2>/dev/null || echo 80/tcp)"
-  local backend_id="${service_prefix}"
-
   local cluster_name="$(etcdctl get /cluster/name)"
+  local backend_id="${service_prefix}"
+  local use_cluster_in_backend="$(etcdctl get ${etcd_dir}/use_cluster_in_backend 2>/dev/null)"
+  if [ "${use_cluster_in_backend}" == "true" ]; then
+    backend_id="${service_prefix}-${cluster_name}"
+  fi
   local register_env_docker_name="${service_prefix}-register-env-${service_suffix}"
   local register_docker_name="${service_prefix}-register-${service_suffix}"
   local service_docker_name="${service_prefix}-${service_suffix}"
