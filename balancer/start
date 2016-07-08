@@ -1,11 +1,22 @@
 #!/bin/bash
+get_servers() {
+  local service_name="$1"
+
+  /usr/bin/etcdctl ls /vulcand/backends/${service_name}/servers | \
+    /usr/bin/sort | \
+    /usr/bin/xargs -L1 /usr/bin/etcdctl get | \
+    /usr/bin/docker run --rm --interactive realguess/jq jq --raw-output '.URL' | \
+    /usr/bin/awk -v ORS=' ' '{ print $1 }' | \
+    sed -e 's/http:\/\///g'
+}
 
 run(){
-  local docker_name="$1"
-  local docker_url="$2"
-  local memory_limit="$3"
-  local port="$4"
-  local bind_port="$5"
+  local service_name="$1"
+  local docker_name="$2"
+  local docker_url="$3"
+  local memory_limit="$4"
+  local port="$5"
+  local bind_port="$6"
   local env_file="/tmp/${docker_name}.env"
 
   docker run --rm \
@@ -13,25 +24,27 @@ run(){
     --env-file "${env_file}" \
     --memory "${memory_limit}" \
     --publish "${bind_port}:${port}" \
+    --publish :9000 \
+    --env SERVERS="$(get_servers "${service_name}")" \
+    --env SERVER_NAME=${COREOS_PRIVATE_IPV4} \
     "${docker_url}"
 }
 
 tattle(){
   local service_prefix="$1"
-  local service_suffix="$2"
-  local cluster_name="$3"
-  local service_docker_url="$4"
-  local etcd_dir="$5"
-  local exit_code="$6"
+  local cluster_name="$2"
+  local service_docker_url="$3"
+  local etcd_dir="$4"
+  local exit_code="$5"
   local tattle_docker_url="$(etcdctl get /octoblu/tattle/docker_url 2>/dev/null)"
-  local tattle_docker_name="${service_prefix}-tattle-${service_suffix}"
+  local tattle_docker_name="${service_prefix}-tattle"
 
   docker run --rm \
     --name "${tattle_docker_name}" \
     --env TATTLE_EXIT_CODE="${exit_code}" \
     --env TATTLE_DOCKER_URL="${service_docker_url}" \
     --env TATTLE_ETCD_DIR="${etcd_dir}" \
-    --env TATTLE_WORKER_NAME="${service_prefix}@${service_suffix}:${cluster_name}" \
+    --env TATTLE_WORKER_NAME="${service_prefix}:${cluster_name}" \
     --env-file "/tmp/${tattle_docker_name}.env" \
     "${tattle_docker_url}"
 }
@@ -39,7 +52,7 @@ tattle(){
 main(){
   local namespace="$1"
   local service_base_name="$2"
-  local service_suffix="$3"
+  local service_name="${namespace}-$3"
   local service_prefix="${namespace}-${service_base_name}"
   local etcd_dir="${namespace}/${service_base_name}"
   local cluster_name="$(etcdctl get /cluster/name 2>/dev/null)"
@@ -49,15 +62,15 @@ main(){
   local bind_port="$(etcdctl get ${etcd_dir}/bind_port 2>/dev/null)"
   local memory_limit="$(etcdctl get ${memory_etcd_key} 2>/dev/null || echo 512m)"
   local docker_url="$(etcdctl get ${docker_url_etcd_key} 2>/dev/null)"
-  local docker_name="${service_prefix}-${service_suffix}"
+  local docker_name="${service_prefix}"
 
   echo "About to run: ${docker_url}"
 
-  run "${docker_name}" "${docker_url}" "${memory_limit}" "${port}" "${bind_port}"
+  run "${service_name}" "${docker_name}" "${docker_url}" "${memory_limit}" "${port}" "${bind_port}"
   local exit_code=$?
   if [ "${exit_code}" != "0" ]; then
     echo "Things went pear-shaped, tattling"
-    tattle "${service_prefix}" "${service_suffix}" "${cluster_name}" "${docker_url}" "${etcd_dir}" "${exit_code}"
+    tattle "${service_prefix}" "${cluster_name}" "${docker_url}" "${etcd_dir}" "${exit_code}"
     exit $exit_code
   fi
 }

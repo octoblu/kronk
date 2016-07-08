@@ -3,8 +3,8 @@
 rm_server() {
   local backend_id="$1"
   local server_id="$2"
-  local docker_url="$(etcdctl get /octoblu/vctl/docker_url)"
-  local vulcan_uri="$(etcdctl get /octoblu/vulcand-major/endpoint)"
+  local docker_url="$(etcdctl get /octoblu/vctl/docker_url 2>/dev/null)"
+  local vulcan_uri="$(etcdctl get /octoblu/vulcand-major/endpoint 2>/dev/null)"
 
   /usr/bin/docker run --rm \
     ${docker_url} \
@@ -65,7 +65,7 @@ main(){
   local etcd_dir="${namespace}/${service_base_name}"
   local env_etcd_key="${etcd_dir}/env"
   local port="$(etcdctl get ${etcd_dir}/port 2>/dev/null || echo 80/tcp)"
-  local cluster_name="$(etcdctl get /cluster/name)"
+  local cluster_name="$(etcdctl get /cluster/name 2>/dev/null)"
   local backend_id="${service_prefix}"
   local use_cluster_in_backend="$(etcdctl get ${etcd_dir}/use_cluster_in_backend 2>/dev/null)"
   if [ "${use_cluster_in_backend}" == "true" ]; then

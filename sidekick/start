@@ -41,12 +41,12 @@ download_image() {
 
 get_docker_url() {
   local etcd_docker_url_key="$1"
-  etcdctl get "${etcd_docker_url_key}"
+  etcdctl get "${etcd_docker_url_key}" 2>/dev/null
 }
 
 get_restart() {
   local etcd_restart_key="$1"
-  etcdctl get "${etcd_restart_key}"
+  etcdctl get "${etcd_restart_key}" 2>/dev/null
 }
 
 pull_image() {

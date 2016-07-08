@@ -6,7 +6,7 @@ extract(){
   local destination="/run/kronk/${service_name}/${script_path}"
 
   mkdir -p "$(dirname $destination)" \
-  && etcdctl get "${script_path}" > "${destination}" \
+  && etcdctl get "${script_path}" > "${destination}" 2>/dev/null \
   && chmod +x "${destination}"
 }
 

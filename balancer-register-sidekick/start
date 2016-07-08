@@ -1,0 +1,60 @@
+#!/bin/bash
+
+check_servers() {
+  local service_name="$1"
+  local servers="$2"
+
+  current_servers="$(get_servers "${service_name}")"
+  if [ "${current_servers}" == "" ]; then
+    return 0
+  fi
+  [ "${current_servers}" == "${servers}" ]
+}
+
+get_servers() {
+  local service_name="$1"
+
+  /usr/bin/etcdctl ls /vulcand/backends/${service_name}/servers | \
+    /usr/bin/sort | \
+    /usr/bin/xargs -L1 /usr/bin/etcdctl get | \
+    /usr/bin/docker run --rm --interactive realguess/jq jq --raw-output '.URL' | \
+    /usr/bin/awk -v ORS=' ' '{ print $1 }' | \
+    sed -e 's/http:\/\///g'
+}
+
+stop_docker() {
+  local timeout="$1"
+  local docker_name="$2"
+
+  docker stop \
+    --time="${timeout}" \
+    "${docker_name}" > /dev/null
+}
+
+main(){
+  local namespace="$1"
+  local service_base_name="$2"
+  local service_name="${namespace}-$3"
+  local service_docker_name="${namespace}-${service_base_name}"
+  local timeout=10
+  local servers="$(get_servers "${service_name}")"
+
+  while true; do
+    sleep $[ ( $RANDOM % 60 )  + 45 ]s # sleep random amount of time to stagger version check
+
+    check_servers "${service_name}" "${servers}"
+    local exit_code=$?
+
+    if [ "${exit_code}" != "0" ]; then
+      echo "Servers changed, restarting."
+      restart=1
+    fi
+
+    if [ "${restart}" == "1" ]; then
+      echo "Kronk sidekicking."
+      stop_docker "${timeout}" "${service_docker_name}"
+      exit 0 # restart to use latest kronk
+    fi
+  done
+}
+main $@

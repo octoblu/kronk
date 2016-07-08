@@ -1,0 +1,18 @@
+#!/bin/bash
+
+main(){
+  local namespace="$1"
+  local service_base_name="$2"
+  local service_prefix="${namespace}-${service_base_name}"
+
+  local service_docker_name="${service_prefix}"
+  local register_docker_name="${service_prefix}-register"
+
+  docker kill \
+    --signal=HUP \
+    "${register_docker_name}" > /dev/null
+
+  docker stop "${service_docker_name}" &> /dev/null
+  exit 0
+}
+main $@
