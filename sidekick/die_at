@@ -1,0 +1,27 @@
+#!/bin/bash
+
+get_die_at() {
+  local now_minutes="$(get_now_minutes)"
+  local random_minutes="$(( $RANDOM % 120 ))"
+  local base_minutes="300"
+  echo "${random_minutes} + ${base_minutes} + ${now_minutes}" | bc
+}
+
+get_now_minutes() {
+  echo "$(date +"%s") / 60" | bc
+}
+
+get_minutes_left() {
+  local die_at="$1"
+  local now_minutes="$(get_now_minutes)"
+  echo "${die_at} - ${now_minutes}" | bc
+}
+
+should_i_die() {
+  local die_at="$1"
+  local minutes_left="$(get_minutes_left "$die_at")"
+  if [ "$minutes_left" -le "0" ]; then
+    return 1
+  fi
+  return 0
+}

@@ -1,0 +1,103 @@
+#!/bin/bash
+
+test_get_die_at() {
+  echo '[Testing] get_die_at'
+  local die_at="$(get_die_at)"
+  local now_minutes="$(get_now_minutes)"
+  local too_early="$(echo "${now_minutes} + 300" | bc)"
+  if [ "$die_at" -lt "$too_early" ]; then
+    echo "[Error] die at is less than 5 hours. $die_at < 300"
+    exit 1
+  fi
+  local too_late="$(echo "${now_minutes} + 420" | bc)"
+  if [ "$die_at" -gt "$too_late" ]; then
+    echo "[Error] die at is more than 7 hours. $die_at > 420"
+    exit 1
+  fi
+  echo '[Passed]'
+  return 0
+}
+
+test_get_now_minutes() {
+  echo '[Testing] get_now_minutes'
+  local now_minutes="$(get_now_minutes)"
+  local the_real_now_minutes="$(echo "$(date +"%s") / 60" | bc)"
+  if [ "$now_minutes" != "$the_real_now_minutes" ]; then
+    echo '[Error] now minutes is not correct'
+    exit 1
+  fi
+  echo '[Passed]'
+  return 0
+}
+
+test_get_minutes_left() {
+  echo '[Testing] get_minutes_left'
+  local target_minutes="$(get_die_at)"
+  local minutes_left="$(get_minutes_left "$target_minutes")"
+  if [ "$minutes_left" -lt "0" ]; then
+    echo '[Error] minutes left is not correct'
+    exit 1
+  fi
+  echo '[Passed]'
+  return 0
+}
+
+test_i_should_not_die() {
+  echo '[Testing] i_should_not_die'
+  local now_minutes="$(get_now_minutes)"
+  local plus_one_minute="$(echo "$now_minutes + 1" | bc)"
+  should_i_die "$plus_one_minute"
+  local exit_code="$?"
+  if [ "$exit_code" != "0" ]; then
+    echo '[Error] I died when I should not have'
+    exit 1
+  fi
+  echo '[Passed]'
+  return 0
+}
+
+test_i_should_die() {
+  echo '[Testing] i_should_die'
+  local now_minutes="$(get_now_minutes)"
+  local one_minute_ago="$(echo "$now_minutes - 1" | bc)"
+  should_i_die "$one_minute_ago"
+  local exit_code="$?"
+  if [ "$exit_code" == "0" ]; then
+    echo '[Error] I should have died'
+    exit 1
+  fi
+  echo '[Passed]'
+  return 0
+}
+
+script_directory(){
+  local source="${BASH_SOURCE[0]}"
+  local dir=""
+
+  while [ -h "$source" ]; do # resolve $source until the file is no longer a symlink
+    dir="$( cd -P "$( dirname "$source" )" && pwd )"
+    source="$(readlink "$source")"
+    [[ $source != /* ]] && source="$dir/$source" # if $source was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+  done
+
+  dir="$( cd -P "$( dirname "$source" )" && pwd )"
+
+  echo "$dir"
+}
+
+main() {
+  local directory="$(script_directory)"
+  source "${directory}/die_at"
+  test_get_die_at
+  test_get_die_at
+  test_get_die_at
+  test_get_die_at
+  test_get_die_at
+  test_get_die_at
+  test_get_now_minutes
+  test_get_minutes_left
+  test_i_should_not_die
+  test_i_should_die
+}
+
+main "$@"
