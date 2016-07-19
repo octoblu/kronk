@@ -4,12 +4,14 @@ test_get_die_at() {
   echo '[Testing] get_die_at'
   local die_at="$(get_die_at)"
   local now_minutes="$(get_now_minutes)"
-  local too_early="$(echo "${now_minutes} + 300" | bc)"
+  local too_early=""
+  let "too_early = ${now_minutes} + 300"
   if [ "$die_at" -lt "$too_early" ]; then
     echo "[Error] die at is less than 5 hours. $die_at < 300"
     exit 1
   fi
-  local too_late="$(echo "${now_minutes} + 420" | bc)"
+  local too_late=""
+  let "too_late = ${now_minutes} + 420"
   if [ "$die_at" -gt "$too_late" ]; then
     echo "[Error] die at is more than 7 hours. $die_at > 420"
     exit 1
@@ -21,7 +23,9 @@ test_get_die_at() {
 test_get_now_minutes() {
   echo '[Testing] get_now_minutes'
   local now_minutes="$(get_now_minutes)"
-  local the_real_now_minutes="$(echo "$(date +"%s") / 60" | bc)"
+  local the_real_now_minutes=""
+  local minutes="$(date +"%s")"
+  let "the_real_now_minutes = ${minutes} / 60"
   if [ "$now_minutes" != "$the_real_now_minutes" ]; then
     echo '[Error] now minutes is not correct'
     exit 1
@@ -45,8 +49,8 @@ test_get_minutes_left() {
 test_i_should_not_die() {
   echo '[Testing] i_should_not_die'
   local now_minutes="$(get_now_minutes)"
-  local plus_one_minute="$(echo "$now_minutes + 1" | bc)"
-  should_i_die "$plus_one_minute"
+  let "now_minutes += 1"
+  should_i_die "$now_minutes"
   local exit_code="$?"
   if [ "$exit_code" != "0" ]; then
     echo '[Error] I died when I should not have'
@@ -59,8 +63,8 @@ test_i_should_not_die() {
 test_i_should_die() {
   echo '[Testing] i_should_die'
   local now_minutes="$(get_now_minutes)"
-  local one_minute_ago="$(echo "$now_minutes - 1" | bc)"
-  should_i_die "$one_minute_ago"
+  let "now_minutes -= 1"
+  should_i_die "$now_minutes"
   local exit_code="$?"
   if [ "$exit_code" == "0" ]; then
     echo '[Error] I should have died'
@@ -89,7 +93,7 @@ main() {
   local directory="$(script_directory)"
   export KRONK_RUN_AS_TEST="true"
   source "${directory}/start"
-  export KRONK_RUN_AS_TEST="false" 
+  export KRONK_RUN_AS_TEST="false"
   test_get_die_at
   test_get_die_at
   test_get_die_at
