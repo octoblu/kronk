@@ -63,22 +63,31 @@ hup_docker() {
     "${docker_name}" > /dev/null
 }
 
-script_directory(){
-  local source="${BASH_SOURCE[0]}"
-  local dir=""
-
-  while [ -h "$source" ]; do # resolve $source until the file is no longer a symlink
-    dir="$( cd -P "$( dirname "$source" )" && pwd )"
-    source="$(readlink "$source")"
-    [[ $source != /* ]] && source="$dir/$source" # if $source was a relative symlink, we need to resolve it relative to the path where the symlink file was located
-  done
-
-  dir="$( cd -P "$( dirname "$source" )" && pwd )"
-
-  echo "$dir"
+get_die_at() {
+  local now_minutes="$(get_now_minutes)"
+  local random_minutes="$(( $RANDOM % 120 ))"
+  local base_minutes="300"
+  echo "${random_minutes} + ${base_minutes} + ${now_minutes}" | bc
 }
 
+get_now_minutes() {
+  echo "$(date +"%s") / 60" | bc
+}
 
+get_minutes_left() {
+  local die_at="$1"
+  local now_minutes="$(get_now_minutes)"
+  echo "${die_at} - ${now_minutes}" | bc
+}
+
+should_i_die() {
+  local die_at="$1"
+  local minutes_left="$(get_minutes_left "$die_at")"
+  if [ "$minutes_left" -le "0" ]; then
+    return 1
+  fi
+  return 0
+}
 
 stop_docker() {
   local timeout="$1"
@@ -90,8 +99,6 @@ stop_docker() {
 }
 
 main(){
-  local directory="$(script_directory)"
-  source "${directory}/die_at"
   local namespace="$1"
   local service_base_name="$2"
   local service_suffix="$3"
@@ -112,7 +119,8 @@ main(){
   local restart_value="$(get_restart "${restart_etcd_key}")"
   local restart=0
   local timeout=10
-
+  local will_die_in="$(get_minutes_left "$die_at")"
+  echo "I will die in ${will_die_in} minutes"
   while true; do
     sleep $[ ( $RANDOM % 60 )  + 45 ]s # sleep random amount of time to stagger version check
 
@@ -153,4 +161,6 @@ main(){
   done
 }
 
-main $@
+if [ "$KRONK_RUN_AS_TEST" != "true" ]; then
+  main $@
+fi
