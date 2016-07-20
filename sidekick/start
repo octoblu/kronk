@@ -25,7 +25,12 @@ check_version() {
   if [ "${current_docker_url}" == "" ]; then
     return 0
   fi
-  [ "${current_docker_url}" == "${docker_url}" ]
+  if [ "${current_docker_url}" == "${docker_url}" ]; then
+    return 0
+  else
+    echo "Docker URL change from $docker_url to $current_docker_url"
+    return 1
+  fi
 }
 
 check_restart() {
@@ -172,9 +177,7 @@ main(){
   local restart=0
   local timeout=10
   local will_die_in="$(get_minutes_left "$die_at")"
-  echo "Kronk starting..."
-  echo "service_docker_name $service_docker_name"
-  echo "register_docker_name $register_docker_name"
+  echo "Kronk starting... service_docker_name: $service_docker_name"
   echo "I will die in ${will_die_in} minutes"
   while true; do
     sleep $[ ( $RANDOM % 60 )  + 45 ]s # sleep random amount of time to stagger version check
@@ -195,11 +198,11 @@ main(){
     fi
 
     local docker_url="$(get_docker_url "${docker_url_etcd_key}")"
-    check_version "${service_docker_name}" "${docker_url}"
+    check_version "${docker_url}" "${service_docker_name}"
     local check_version_exit_code=$?
 
     if [ "${check_version_exit_code}" != "0" ]; then
-      echo "Docker URL changed, restarting. $docker_url"
+      echo "Docker URL changed, restarting"
       restart=1
     fi
 
