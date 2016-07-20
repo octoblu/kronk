@@ -172,6 +172,9 @@ main(){
   local restart=0
   local timeout=10
   local will_die_in="$(get_minutes_left "$die_at")"
+  echo "Kronk starting..."
+  echo "service_docker_name $service_docker_name"
+  echo "register_docker_name $register_docker_name"
   echo "I will die in ${will_die_in} minutes"
   while true; do
     sleep $[ ( $RANDOM % 60 )  + 45 ]s # sleep random amount of time to stagger version check
@@ -196,7 +199,7 @@ main(){
     local check_version_exit_code=$?
 
     if [ "${check_version_exit_code}" != "0" ]; then
-      echo "Docker URL changed, restarting."
+      echo "Docker URL changed, restarting. $docker_url"
       restart=1
     fi
 
