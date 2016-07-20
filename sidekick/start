@@ -9,10 +9,19 @@ check_image_downloaded() {
     "${docker_url}" > /dev/null
 }
 
-check_version() {
+docker_inspect() {
   local service_docker_name="$1"
-  local docker_url="$2"
-  current_docker_url=$(docker ps | grep "${service_docker_name}" | awk '{ print $2 }')
+  docker inspect "$service_docker_name"
+}
+
+check_version() {
+  local docker_url="$1"
+  local service_docker_name="$2"
+  local docker_inspect_result="$3"
+  if [ -z "$docker_inspect_result" ]; then
+    docker_inspect_result="$(docker_inspect "$service_docker_name")"
+  fi
+  current_docker_url="$(echo "${docker_inspect_result}" | grep -v 'sha256' | grep '\"Image\"' | sed -e 's/.*\": \"//' | sed -e 's/\",.*//')"
   if [ "${current_docker_url}" == "" ]; then
     return 0
   fi
@@ -105,24 +114,60 @@ stop_docker() {
     "${docker_name}" > /dev/null
 }
 
+get_service_docker_name() {
+  local service_prefix="$1"
+  local service_suffix="$2"
+  if [ "${service_suffix}" == "" ]; then
+    echo "${service_prefix}"
+  else
+    echo "${service_prefix}-${service_suffix}"
+  fi
+}
+
+get_service_docker_name() {
+  local service_prefix="$1"
+  local service_suffix="$2"
+  if [ "${service_suffix}" == "" ]; then
+    echo "${service_prefix}"
+  else
+    echo "${service_prefix}-${service_suffix}"
+  fi
+}
+
+get_register_docker_name() {
+  local service_prefix="$1"
+  local service_suffix="$2"
+  if [ "${service_suffix}" == "" ]; then
+    echo "${service_prefix}-register"
+  else
+    echo "${service_prefix}-register-${service_suffix}"
+  fi
+}
+
+get_service_prefix() {
+  local namespace="$1"
+  local service_base_name="$2"
+  echo "${namespace}-${service_base_name}"
+}
+
+get_etcd_key() {
+  local namespace="$1"
+  local service_base_name="$2"
+  local key="$3"
+  local etcd_dir="${namespace}/${service_base_name}"
+  echo "${etcd_dir}/${key}"
+}
+
 main(){
   local namespace="$1"
   local service_base_name="$2"
   local service_suffix="$3"
-  local service_prefix="${namespace}-${service_base_name}"
-  local etcd_dir="${namespace}/${service_base_name}"
-  local docker_url_etcd_key="${etcd_dir}/docker_url"
-  local restart_etcd_key="${etcd_dir}/restart"
+  local service_prefix="$(get_service_prefix "$namespace" "$service_base_name")"
+  local docker_url_etcd_key="$(get_etcd_key "$namespace" "$service_base_name" 'docker_url')"
+  local restart_etcd_key="$(get_etcd_key "$namespace" "$service_base_name" 'restart')"
+  local register_docker_name="$(get_register_docker_name "$service_prefix" "$service_suffix")"
+  local service_docker_name="$(get_service_docker_name "$service_prefix" "$service_suffix")"
   local die_at="$(get_die_at)"
-  local register_docker_name
-  local service_docker_name
-  if [ "${service_suffix}" == "" ]; then
-    register_docker_name="${service_prefix}-register"
-    service_docker_name="${service_prefix}"
-  else
-    register_docker_name="${service_prefix}-register-${service_suffix}"
-    service_docker_name="${service_prefix}-${service_suffix}"
-  fi
   local restart_value="$(get_restart "${restart_etcd_key}")"
   local restart=0
   local timeout=10
@@ -132,9 +177,9 @@ main(){
     sleep $[ ( $RANDOM % 60 )  + 45 ]s # sleep random amount of time to stagger version check
 
     check_restart "${restart_etcd_key}" "${restart_value}"
-    local exit_code=$?
+    local check_restart_exit_code=$?
 
-    if [ "${exit_code}" != "0" ]; then
+    if [ "${check_restart_exit_code}" != "0" ]; then
       echo "Restart value changed, restarting."
       restart=1
     fi
@@ -148,9 +193,9 @@ main(){
 
     local docker_url="$(get_docker_url "${docker_url_etcd_key}")"
     check_version "${service_docker_name}" "${docker_url}"
-    local exit_code=$?
+    local check_version_exit_code=$?
 
-    if [ "${exit_code}" != "0" ]; then
+    if [ "${check_version_exit_code}" != "0" ]; then
       echo "Docker URL changed, restarting."
       restart=1
     fi

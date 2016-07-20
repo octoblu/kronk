@@ -1,78 +1,166 @@
 #!/bin/bash
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m'
+
+helper_describe() {
+  local message="$1"
+  echo "->${message}"
+}
+
+helper_it() {
+  local message="$1"
+  echo "  - it ${message}"
+}
+
+helper_failed() {
+  local message="$1"
+  echo -e "    ${RED}[Failed]${NC} ${message}"
+  exit 1
+}
+
+helper_passed() {
+  local message="$1"
+  echo -e "    ${GREEN}[Passed]${NC} ${message}"
+}
 
 test_get_die_at() {
-  echo '[Testing] get_die_at'
+  helper_describe 'get_die_at'
   local die_at="$(get_die_at)"
   local now_minutes="$(get_now_minutes)"
   local too_early=""
   let "too_early = ${now_minutes} + 300"
+  helper_it 'should not die in less than 5 hours'
   if [ "$die_at" -lt "$too_early" ]; then
-    echo "[Error] die at is less than 5 hours. $die_at < 300"
-    exit 1
+    helper_failed
+  else
+    helper_passed
   fi
   local too_late=""
   let "too_late = ${now_minutes} + 420"
+  helper_it 'should not die later than 7 hours'
   if [ "$die_at" -gt "$too_late" ]; then
-    echo "[Error] die at is more than 7 hours. $die_at > 420"
-    exit 1
+    helper_failed
+  else
+    helper_passed
   fi
-  echo '[Passed]'
-  return 0
 }
 
 test_get_now_minutes() {
-  echo '[Testing] get_now_minutes'
+  helper_describe 'get_now_minutes'
   local now_minutes="$(get_now_minutes)"
   local the_real_now_minutes=""
   local minutes="$(date +"%s")"
   let "the_real_now_minutes = ${minutes} / 60"
+  helper_it 'should be the correct number of minutes since 1970'
   if [ "$now_minutes" != "$the_real_now_minutes" ]; then
-    echo '[Error] now minutes is not correct'
-    exit 1
+    helper_failed
+  else
+    helper_passed
   fi
-  echo '[Passed]'
-  return 0
 }
 
 test_get_minutes_left() {
-  echo '[Testing] get_minutes_left'
+  helper_describe 'get_minutes_left'
   local target_minutes="$(get_die_at)"
   local minutes_left="$(get_minutes_left "$target_minutes")"
+  helper_it 'should not be less than 0'
   if [ "$minutes_left" -lt "0" ]; then
-    echo '[Error] minutes left is not correct'
-    exit 1
+    helper_failed
+  else
+    helper_passed
   fi
-  echo '[Passed]'
-  return 0
 }
 
 test_i_should_not_die() {
-  echo '[Testing] i_should_not_die'
+  helper_describe 'i_should_not_die'
   local now_minutes="$(get_now_minutes)"
   let "now_minutes += 1"
   should_i_die "$now_minutes"
   local exit_code="$?"
-  if [ "$exit_code" != "0" ]; then
-    echo '[Error] I died when I should not have'
-    exit 1
+  helper_it 'should have an exit code of 0'
+  if [ "$exit_code" == "0" ]; then
+    helper_passed
+  else
+    helper_failed
   fi
-  echo '[Passed]'
-  return 0
 }
 
 test_i_should_die() {
-  echo '[Testing] i_should_die'
+  helper_describe 'i_should_die'
   local now_minutes="$(get_now_minutes)"
   let "now_minutes -= 1"
   should_i_die "$now_minutes"
   local exit_code="$?"
-  if [ "$exit_code" == "0" ]; then
-    echo '[Error] I should have died'
-    exit 1
+  helper_it 'should not have an exit code of 0'
+  if [ "$exit_code" != "0" ]; then
+    helper_passed
+  else
+    helper_failed
   fi
-  echo '[Passed]'
-  return 0
 }
+
+test_get_service_docker_name() {
+  helper_describe 'get_service_docker_name'
+  local service_docker_name="$(get_service_docker_name 'octoblu-test-service' '1')"
+  helper_it 'should have the correct service name'
+  if [ "$service_docker_name" == 'octoblu-test-service-1' ]; then
+    helper_passed
+  else
+    helper_failed
+  fi
+}
+
+test_get_register_docker_name() {
+  helper_describe 'get_register_docker_name'
+  local service_docker_name="$(get_register_docker_name 'octoblu-test-service' '1')"
+  helper_it 'should have the correct register service name'
+  if [ "$service_docker_name" == 'octoblu-test-service-register-1' ]; then
+    helper_passed
+  else
+    helper_failed
+  fi
+}
+
+test_get_etcd_key() {
+  helper_describe 'get_etcd_key'
+  local etcd_key="$(get_etcd_key 'octoblu' 'test-service' 'docker_url')"
+  helper_it 'should have the correct etcd key'
+  if [ "$etcd_key" == 'octoblu/test-service/docker_url' ]; then
+    helper_passed
+  else
+    helper_failed
+  fi
+}
+
+test_check_version_match() {
+  helper_describe 'check_version_match'
+  local directory="$(script_directory)"
+  local test_docker_inspect_result="$(cat $directory/test_docker_inspect_result)"
+  check_version 'quay.io/octoblu/meshblu-test-service:v1.0.0' 'octoblu-test-service-1' "$test_docker_inspect_result"
+  local exit_code="$?"
+  helper_it 'should have an exit code of 0'
+  if [ "$exit_code" == '0' ]; then
+    helper_passed
+  else
+    helper_failed
+  fi
+}
+
+test_check_version_no_match() {
+  helper_describe 'check_version_no_match'
+  local directory="$(script_directory)"
+  local test_docker_inspect_result="$(cat $directory/test_docker_inspect_result)"
+  check_version 'quay.io/octoblu/meshblu-test-service:v1.0.2' 'octoblu-test-service-1' "$test_docker_inspect_result"
+  local exit_code="$?"
+  helper_it 'should have an exit code of non-0'
+  if [ "$exit_code" != '0' ]; then
+    helper_passed
+  else
+    helper_failed
+  fi
+}
+
 
 script_directory(){
   local source="${BASH_SOURCE[0]}"
@@ -95,15 +183,15 @@ main() {
   source "${directory}/start"
   export KRONK_RUN_AS_TEST="false"
   test_get_die_at
-  test_get_die_at
-  test_get_die_at
-  test_get_die_at
-  test_get_die_at
-  test_get_die_at
   test_get_now_minutes
   test_get_minutes_left
   test_i_should_not_die
   test_i_should_die
+  test_get_service_docker_name
+  test_get_register_docker_name
+  test_get_etcd_key
+  test_check_version_match
+  test_check_version_no_match
 }
 
 main "$@"
