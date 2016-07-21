@@ -29,16 +29,16 @@ test_get_die_at() {
   local die_at="$(get_die_at)"
   local now_minutes="$(get_now_minutes)"
   local too_early=""
-  let "too_early = ${now_minutes} + 300"
-  helper_it 'should not die in less than 5 hours'
+  let "too_early = ${now_minutes} + 180"
+  helper_it 'should not die in less than 3 hours'
   if [ "$die_at" -lt "$too_early" ]; then
     helper_failed
   else
     helper_passed
   fi
   local too_late=""
-  let "too_late = ${now_minutes} + 420"
-  helper_it 'should not die later than 7 hours'
+  let "too_late = ${now_minutes} + 300"
+  helper_it 'should not die later than 5 hours'
   if [ "$die_at" -gt "$too_late" ]; then
     helper_failed
   else

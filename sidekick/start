@@ -80,7 +80,7 @@ hup_docker() {
 get_die_at() {
   local now_minutes="$(get_now_minutes)"
   local random_minutes="$(( $RANDOM % 120 ))"
-  local base_minutes="300"
+  local base_minutes="180"
   local result=""
   let "result = ${random_minutes} + ${base_minutes} + ${now_minutes}"
   echo "$result"
