@@ -5,7 +5,7 @@ get_servers() {
   /usr/bin/etcdctl ls /vulcand/backends/${service_name}/servers | \
     /usr/bin/sort | \
     /usr/bin/xargs -L1 /usr/bin/etcdctl get | \
-    /usr/bin/docker run --rm --interactive realguess/jq jq --raw-output '.URL' | \
+    /usr/bin/docker run --rm --net "host" --interactive realguess/jq jq --raw-output '.URL' | \
     /usr/bin/awk -v ORS=' ' '{ print $1 }' | \
     sed -e 's/http:\/\///g'
 }
@@ -40,6 +40,7 @@ tattle(){
   local tattle_docker_name="${service_prefix}-tattle"
 
   docker run --rm \
+    --net "host" \
     --name "${tattle_docker_name}" \
     --env TATTLE_EXIT_CODE="${exit_code}" \
     --env TATTLE_DOCKER_URL="${service_docker_url}" \

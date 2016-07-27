@@ -27,6 +27,7 @@ tattle(){
   local tattle_docker_name="${service_prefix}-tattle-${service_suffix}"
 
   docker run --rm \
+    --net "host" \
     --name "${tattle_docker_name}" \
     --env TATTLE_EXIT_CODE="${exit_code}" \
     --env TATTLE_DOCKER_URL="${service_docker_url}" \

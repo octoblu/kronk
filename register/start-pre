@@ -41,6 +41,7 @@ write_env_file() {
   local register_docker_name="$2"
   local etcd_key="$3"
   /usr/bin/docker run --rm \
+    --net "host" \
     --name "${register_env_docker_name}" \
     --env ETCDCTL_PEERS=http://$(ifconfig docker0 | grep 'inet ' | awk '{print $2}'):2379 \
     quay.io/octoblu/etcd-to-env "${etcd_key}" > "/tmp/${register_docker_name}.env" 2> /dev/null
@@ -51,7 +52,7 @@ write_port_file() {
   local port="$2"
 
   docker inspect "${service_docker_name}" \
-    | docker run --rm --interactive realguess/jq \
+    | docker run --rm --net "host" --interactive realguess/jq \
       jq --raw-output ".[].NetworkSettings.Ports[\"${port}\"][].HostPort" \
     | xargs echo -n > "/tmp/${service_docker_name}-port"
   exit $?

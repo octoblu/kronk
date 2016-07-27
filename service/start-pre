@@ -33,6 +33,7 @@ write_env_file() {
   local docker_name="$2"
   local etcd_key="$3"
   /usr/bin/docker run --rm \
+    --net "host" \
     --name "${env_docker_name}" \
     --env ETCDCTL_PEERS=http://$(ifconfig docker0 | grep 'inet ' | awk '{print $2}'):2379 \
     quay.io/octoblu/etcd-to-env "${etcd_key}" > "/tmp/${docker_name}.env" 2> /dev/null
