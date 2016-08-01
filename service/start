@@ -1,15 +1,19 @@
 #!/bin/bash
 
 run(){
-  local docker_name="$1"
-  local docker_url="$2"
-  local memory_limit="$3"
-  local port="$4"
-  local bind_port="$5"
+  local service_prefix="$1"
+  local service_suffix="$2"
+  local cluster_name="$3"
+  local docker_url="$4"
+  local memory_limit="$5"
+  local port="$6"
+  local bind_port="$7"
+  local docker_name="${service_prefix}-${service_suffix}"
   local env_file="/tmp/${docker_name}.env"
 
   docker run --rm \
     --name "${docker_name}" \
+    --env WORKER_NAME="${service_prefix}@${service_suffix}:${cluster_name}" \
     --env-file "${env_file}" \
     --memory "${memory_limit}" \
     --publish "${bind_port}:${port}" \
@@ -50,11 +54,10 @@ main(){
   local bind_port="$(etcdctl get ${etcd_dir}/bind_port 2>/dev/null)"
   local memory_limit="$(etcdctl get ${memory_etcd_key} 2>/dev/null || echo 512m)"
   local docker_url="$(etcdctl get ${docker_url_etcd_key} 2>/dev/null)"
-  local docker_name="${service_prefix}-${service_suffix}"
 
   echo "About to run: ${docker_url}"
 
-  run "${docker_name}" "${docker_url}" "${memory_limit}" "${port}" "${bind_port}"
+  run "${service_prefix}" "${service_suffix}" "${cluster_name}" "${docker_url}" "${memory_limit}" "${port}" "${bind_port}"
   local exit_code=$?
   if [ "${exit_code}" != "0" ]; then
     echo "Things went pear-shaped, tattling"
