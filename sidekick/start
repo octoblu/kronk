@@ -170,15 +170,19 @@ main(){
   local service_prefix="$(get_service_prefix "$namespace" "$service_base_name")"
   local docker_url_etcd_key="$(get_etcd_key "$namespace" "$service_base_name" 'docker_url')"
   local restart_etcd_key="$(get_etcd_key "$namespace" "$service_base_name" 'restart')"
+  local i_will_not_die="$(get_etcd_key "$namespace" "$service_base_name" 'i_will_not_die')"
   local register_docker_name="$(get_register_docker_name "$service_prefix" "$service_suffix")"
   local service_docker_name="$(get_service_docker_name "$service_prefix" "$service_suffix")"
   local die_at="$(get_die_at)"
   local restart_value="$(get_restart "${restart_etcd_key}")"
   local restart=0
   local timeout=10
-  local will_die_in="$(get_minutes_left "$die_at")"
   echo "Kronk starting... service_docker_name: $service_docker_name"
-  echo "I will die in ${will_die_in} minutes"
+  local will_die_in=""
+  if [ "$i_will_not_die" != "true" ]; then
+    local will_die_in="$(get_minutes_left "$die_at")"
+    echo "I will die in ${will_die_in} minutes"
+  fi
   while true; do
     sleep $[ ( $RANDOM % 60 )  + 45 ]s # sleep random amount of time to stagger version check
 
@@ -190,11 +194,13 @@ main(){
       restart=1
     fi
 
-    should_i_die "$die_at"
-    local should_i_die_exit_code="$?"
-    if [ "$should_i_die_exit_code" != "0" ]; then
-      echo "It is time to die, restarting."
-      restart=1
+    if [ "$i_will_not_die" != "true" ]; then
+      should_i_die "$die_at"
+      local should_i_die_exit_code="$?"
+      if [ "$should_i_die_exit_code" != "0" ]; then
+        echo "It is time to die, restarting."
+        restart=1
+      fi
     fi
 
     local docker_url="$(get_docker_url "${docker_url_etcd_key}")"
