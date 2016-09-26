@@ -20,6 +20,7 @@ execute(){
 }
 
 main(){
+  sleep 3 # prevent too fast restart
   local script_path="$1"
   shift
   local service_name="$1"
