@@ -22,7 +22,12 @@ check_version() {
     docker_inspect_result="$(docker_inspect "$service_docker_name")"
   fi
   current_docker_url="$(echo "${docker_inspect_result}" | grep -v 'sha256' | grep '\"Image\"' | sed -e 's/.*\": \"//' | sed -e 's/\",.*//')"
+  if [ "${docker_url}" == "" ]; then
+    echo "Docker URL is empty"
+    return 0
+  fi
   if [ "${current_docker_url}" == "" ]; then
+    echo "Current Docker URL is empty"
     return 0
   fi
   if [ "${current_docker_url}" == "${docker_url}" ]; then
@@ -183,7 +188,7 @@ main(){
   local restart_value="$(get_restart "${restart_etcd_key}")"
   local restart=0
   local timeout=10
-  echo "Kronk starting... service_docker_name: $service_docker_name, die? $i_will_not_die"
+  echo "Kronk starting... service_docker_name: $service_docker_name, I will not die? $i_will_not_die"
   local will_die_in=""
   if [ "$i_will_not_die" != "true" ]; then
     will_die_in="$(get_minutes_left "$die_at")"
@@ -228,6 +233,7 @@ main(){
       stop_docker "${timeout}" "${service_docker_name}"
       exit 0 # restart to use latest kronk
     fi
+
   done
 }
 
