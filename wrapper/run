@@ -6,7 +6,7 @@ extract(){
   local destination="/run/kronk/${service_name}/${script_path}"
 
   mkdir -p "$(dirname $destination)" \
-  && /usr/bin/curl -s "http://kronk.octoblu.com/latest/${script_path}" > "${destination}" \
+  && /usr/bin/curl -s "http://kronk.octoblu.com/latest${script_path}" > "${destination}" \
   && chmod +x "${destination}"
 }
 
