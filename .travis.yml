@@ -7,10 +7,12 @@ script:
 before_deploy:
 - export PKG_VERSION="$(cat VERSION)"
 - if [ -z "$PKG_VERSION" ]; then echo 'Missing PKG_VERSION env' && exit 1; fi
-- mkdir -p dpl_assets/v$PKG_VERSION
-- mkdir -p dpl_assets/latest
+- mkdir -p dpl_assets/v$PKG_VERSION/kronk
+- mkdir -p dpl_assets/latest/kronk
 - cp -r `ls | grep -v dpl_assets` dpl_assets/v$PKG_VERSION
+- cp -r `ls | grep -v dpl_assets` dpl_assets/v$PKG_VERSION/kronk
 - cp -r `ls | grep -v dpl_assets` dpl_assets/latest
+- cp -r `ls | grep -v dpl_assets` dpl_assets/latest/kronk
 deploy:
 - provider: s3
   access_key_id: AKIAJH2D5IPIRHYJT5IA

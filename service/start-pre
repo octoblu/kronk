@@ -33,7 +33,7 @@ write_env_file() {
   local docker_name="$2"
   local bucket_hostname="$(/usr/bin/etcdctl get /cluster/env/bucket-hostname 2>/dev/null)"
   if [ ! -f "/tmp/env-aes.key" ]; then
-    etcdctl get /cluster/env/aes-key 2> /dev/null > /tmp/env-aes.key
+    /usr/bin/etcdctl get /cluster/env/aes-key 2> /dev/null > /tmp/env-aes.key
   fi
   /usr/bin/curl -s "http://${bucket_hostname}/${service_base_name}" > "/tmp/${docker_name}.env.enc"
   /usr/bin/openssl enc -aes-256-cbc -d -kfile /tmp/env-aes.key -in "/tmp/${docker_name}.env.enc" -out "/tmp/${docker_name}.env"
