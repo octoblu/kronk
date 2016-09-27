@@ -43,7 +43,7 @@ write_env_file() {
   if [ ! -f "/tmp/env-aes.key" ]; then
     /usr/bin/etcdctl get /cluster/env/aes-key 2> /dev/null > /tmp/env-aes.key
   fi
-  /usr/bin/curl -s "http://${bucket_hostname}/latest/${service_base_name}" > "/tmp/${docker_name}.env.enc"
+  /usr/bin/curl -s "http://${bucket_hostname}/latest/${service_base_name}.env" > "/tmp/${docker_name}.env.enc"
   /usr/bin/openssl enc -aes-256-cbc -d -kfile /tmp/env-aes.key -in "/tmp/${docker_name}.env.enc" -out "/tmp/${docker_name}.env"
 }
 
