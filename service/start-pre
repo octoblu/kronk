@@ -29,14 +29,14 @@ stop_docker() {
 }
 
 write_env_file() {
-  local env_docker_name="$1"
+  local service_base_name="$1"
   local docker_name="$2"
-  local etcd_key="$3"
-  /usr/bin/docker run --rm \
-    --net "host" \
-    --name "${env_docker_name}" \
-    --env ETCDCTL_PEERS=http://$(ifconfig docker0 | grep 'inet ' | awk '{print $2}'):2379 \
-    quay.io/octoblu/etcd-to-env "${etcd_key}" > "/tmp/${docker_name}.env" 2> /dev/null
+  local bucket_hostname="$(/usr/bin/etcdctl get /cluster/env/bucket-hostname 2>/dev/null)"
+  if [ ! -f "/tmp/env-aes.key" ]; then
+    etcdctl get /cluster/env/aes-key 2> /dev/null > /tmp/env-aes.key
+  fi
+  /usr/bin/curl -s "http://${bucket_hostname}/${service_base_name}" > "/tmp/${docker_name}.env.enc"
+  /usr/bin/openssl enc -aes-256-cbc -d -kfile /tmp/env-aes.key -in "/tmp/${docker_name}.env.enc" -out "/tmp/${docker_name}.env"
 }
 
 main(){
@@ -46,18 +46,15 @@ main(){
   local service_prefix="${namespace}-${service_base_name}"
   local etcd_dir="${namespace}/${service_base_name}"
   local docker_url_etcd_key="${etcd_dir}/docker_url"
-  local env_etcd_key="${etcd_dir}/env"
   local register_docker_name="${service_prefix}-register-${service_suffix}"
-  local env_docker_name="${service_prefix}-env-${service_suffix}"
   local docker_name="${service_prefix}-${service_suffix}"
   local tattle_docker_name="${service_prefix}-tattle-${service_suffix}"
-  local tattle_env_docker_name="${service_prefix}-tattle-env-${service_suffix}"
 
   assert_docker_url_etcd_key "${docker_url_etcd_key}"
-  stop_docker_with_force "${env_docker_name}" "${docker_name}" "${tattle_docker_name}" "${tattle_env_docker_name}"
+  stop_docker_with_force "${docker_name}" "${tattle_docker_name}"
   stop_docker "${register_docker_name}"
   docker_login
-  write_env_file "${env_docker_name}" "${docker_name}" "${env_etcd_key}"
-  write_env_file "${tattle_env_docker_name}" "${tattle_docker_name}" "/octoblu/tattle/env"
+  write_env_file "${service_base_name}" "${docker_name}"
+  write_env_file "tattle" "${tattle_docker_name}"
 }
 main $@

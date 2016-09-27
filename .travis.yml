@@ -1,0 +1,23 @@
+language: bash
+branches:
+  only:
+  - /^v[0-9]/
+script:
+- exit 0
+after_success:
+- if [ -z "$PKG_VERSION" ]; then echo 'Missing PKG_VERSION env' && exit 1; fi
+- mkdir -p dpl_assets/v$PKG_VERSION
+- mkdir -p dpl_assets/latest
+- cp -r * dpl_assets/v$PKG_VERSION
+- cp -r * dpl_assets/latest
+deploy:
+- provider: s3
+  access_key_id: AKIAJH2D5IPIRHYJT5IA
+  secret_access_key:
+    secure: nCKFuKF75sGfPWF5GGeHhVpeU099OGmBOCbHRe5J/TgbkYoV/31X4/63mfuuIwBn26wrc3wYI1f9nV5qsbJFOYyQBZ5eI32buTvg4yOaXgUABj5GP7Reba48By7wDfkcu5XB2KEqNLyF+9MhpLwlAITabfALuc0SO3i8WTnr/B2MU6Deg4PuXgTCv+KEG+xGlyA5Q7ZqS20/eKNMoA+TX0V3iDWI175cQ5s8Dd7FyQc5qZod3hGGaiipiaB0HCbrdoDU3+C9E4wiXn1zi3RlCtHo7Fa3qU+2t8C10WxBity5rszmD5JcPg7ClBYdc6WmjRkNU2TXOOk0hyJpN/10gNcGdOHUla4ZcuNvkw4uBWy5AAvkAJtXZkjwFWqFvizZSayZV+2G7Ko1WAUqkQKMezTOqdzzKL06y3DQXFJS/Ubh/aWf5Zk4gFO2zDzf7GfuGjpFbmQ69F8I5E6BGQ8C1uEa92wPPqmiq+Ini+if/NX1UKdJfio2WiA32ZwblYDkk4JIVJeyTGKIDxni3vpe0ohrYhrb3g8300zteLCnRLaL38ZcCOQ2RJPOWxDRvc8YkQ+LUQllFYpIIR9Thtm/TY2xUNiDjRdRdQ9ou6tduBfDacejABPlvuL+gIOcEMFhOdfBDGxjevn6NTQdGERuiUVrOkdJq8DCgv2/f+K1hqI=
+  bucket: kronk.octoblu.com
+  region: us-west-2
+  skip_cleanup: true
+  local-dir: dpl_assets
+  on:
+    tags: true
