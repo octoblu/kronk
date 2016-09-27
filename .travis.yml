@@ -4,7 +4,8 @@ branches:
   - /^v[0-9]/
 script:
 - echo "LGTM"
-after_success:
+before_deploy:
+- export PKG_VERSION="$(cat VERSION)"
 - if [ -z "$PKG_VERSION" ]; then echo 'Missing PKG_VERSION env' && exit 1; fi
 - mkdir -p dpl_assets/v$PKG_VERSION
 - mkdir -p dpl_assets/latest
