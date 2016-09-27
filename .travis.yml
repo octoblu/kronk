@@ -3,7 +3,7 @@ branches:
   only:
   - /^v[0-9]/
 script:
-- exit 0
+- echo "LGTM"
 after_success:
 - if [ -z "$PKG_VERSION" ]; then echo 'Missing PKG_VERSION env' && exit 1; fi
 - mkdir -p dpl_assets/v$PKG_VERSION
