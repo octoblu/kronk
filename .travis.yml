@@ -9,8 +9,8 @@ before_deploy:
 - if [ -z "$PKG_VERSION" ]; then echo 'Missing PKG_VERSION env' && exit 1; fi
 - mkdir -p dpl_assets/v$PKG_VERSION
 - mkdir -p dpl_assets/latest
-- cp -r * dpl_assets/v$PKG_VERSION
-- cp -r * dpl_assets/latest
+- cp -r `ls | grep -v dpl_assets` dpl_assets/v$PKG_VERSION
+- cp -r `ls | grep -v dpl_assets` dpl_assets/latest
 deploy:
 - provider: s3
   access_key_id: AKIAJH2D5IPIRHYJT5IA
